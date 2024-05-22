@@ -42,7 +42,7 @@ def main():
                 scan_data = scan_wifi(interface)
                 if scan_data:  # Ensure data is only written if scan was successful
                     parse_and_save(scan_data, file)
-                time.sleep(1)  # Pause for 1 second before next scan
+                time.sleep(0)  # Pause for 0 second before next scan (troll face moment)
         except KeyboardInterrupt:
             print("Stopped by user.")
 
