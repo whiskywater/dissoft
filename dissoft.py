@@ -30,7 +30,7 @@ def parse_and_save(scan_data, file):
                     if essid != 'Unknown' and essid not in seen_networks:
                         seen_networks.add(essid)
                         if first_network:
-                            file.write('\n' + '=' * 32 + '\n')
+                            file.write('\n' + '=' * 32 + '\n\n')
                             file.write(f"Scan Time: {current_time}\n")
                             first_network = False
                         print(f"Wi-Fi network ESSID identified: {essid}\n")
