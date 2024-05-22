@@ -63,8 +63,8 @@ def start_monitoring_tools(network_info, interface):
     subprocess.Popen(['gnome-terminal', '--', 'bash', '-c', airodump_cmd])
     subprocess.Popen(['gnome-terminal', '--', 'bash', '-c', aireplay_cmd])
     
-    # Run both commands for 30 seconds
-    time.sleep(30)
+    # Run both commands for 15 seconds
+    time.sleep(15)
 
     # Find and kill the processes to terminate them after 30 seconds
     subprocess.run(['pkill', '-f', 'airodump-ng'])
@@ -81,7 +81,7 @@ def main():
             if network_info:
                 start_monitoring_tools(network_info, interface)
                 break
-        time.sleep(5)  # Scan every 5 seconds
+        time.sleep(1)  # Scan every 1 second
 
 if __name__ == "__main__":
     main()
