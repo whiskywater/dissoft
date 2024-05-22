@@ -22,44 +22,42 @@ def scan_wifi(interface):
 
 def parse_and_save(scan_data, file):
     if scan_data:
-        # Write current timestamp
+        # Current timestamp
         current_time = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
-        file.write(f"Scan Time: {current_time}\n")
         
-        networks = []
         network_info = {}
+        first_network = True
 
         for line in scan_data.splitlines():
             if 'Cell' in line:  # New network block starts
-                if network_info:  # Save previous block if it exists
-                    networks.append(network_info)
-                    network_info = {}  # Reset for next network block
+                if network_info:  # If there's accumulated network info, write it down
+                    if first_network:  # For the first network, add the scan time
+                        file.write(f"Scan Time: {current_time}\n")
+                        first_network = False
+                    file.write(f"ESSID: {network_info.get('ESSID', 'Unknown')}\n")
+                    file.write(f"Channel: {network_info.get('Channel', 'Unknown')}\n")
+                    file.write('=' * 32 + '\n')
+                    network_info = {}  # Reset for the next network
 
             if 'ESSID' in line:
                 essid = line.split(':')[1].strip().strip('"')
                 network_info['ESSID'] = essid
             elif 'Address' in line:
-                address = line.split(' ')[-1].strip()
-                network_info['Address'] = address
+                # Extract MAC address, not used directly in the output here
+                network_info['Address'] = line.split(' ')[-1].strip()
             elif 'Frequency' in line:
                 # Extracting channel from frequency
                 match = re.search(r'(\d+\.\d+) GHz \(Channel (\d+)\)', line)
                 if match:
                     network_info['Channel'] = match.group(2)
 
-        # Add the last network entry if it exists
+        # Write the last network entry if it exists and wasn't written yet
         if network_info:
-            networks.append(network_info)
-
-        # Writing all networks together
-        for net in networks:
-            file.write(f"ESSID: {net.get('ESSID', 'Unknown')}\n")
-            file.write(f"MAC Address: {net.get('Address', 'Unknown')}\n")
-            file.write(f"Channel: {net.get('Channel', 'Unknown')}\n")
-            file.write('-' * 32 + '\n')
-        
-        # Add separator for this entire scan cluster
-        file.write('=' * 32 + '\n')
+            if first_network:  # If still the first network, add the scan time
+                file.write(f"Scan Time: {current_time}\n")
+            file.write(f"ESSID: {network_info.get('ESSID', 'Unknown')}\n")
+            file.write(f"Channel: {network_info.get('Channel', 'Unknown')}\n")
+            file.write('=' * 32 + '\n')
 
 def main():
     interface = get_interface()
