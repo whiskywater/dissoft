@@ -17,7 +17,6 @@ def scan_wifi(interface):
         return scan_output
     except subprocess.CalledProcessError as e:
         print(f"Failed to scan networks: {e}")
-        # Instead of returning None, return an empty string to avoid affecting the output file
         return "FAILED SCAN, IGNORE"
 
 def parse_and_save(scan_data, file):
@@ -27,36 +26,60 @@ def parse_and_save(scan_data, file):
         
         network_info = {}
         first_network = True
+        seen_networks = set()  # To keep track of networks and avoid duplicates
 
         for line in scan_data.splitlines():
             if 'Cell' in line:  # New network block starts
                 if network_info:  # If there's accumulated network info, write it down
-                    if first_network:  # For the first network, add the scan time
-                        file.write(f"Scan Time: {current_time}\n")
-                        first_network = False
-                    file.write(f"ESSID: {network_info.get('ESSID', 'Unknown')}\n")
-                    file.write(f"Channel: {network_info.get('Channel', 'Unknown')}\n")
+                    essid = network_info.get('ESSID', 'Unknown')
+                    if essid != 'Unknown' and essid not in seen_networks:
+                        seen_networks.add(essid)
+                        if first_network:  # For the first network, add the scan time
+                            file.write(f"Scan Time: {current_time}\n")
+                            first_network = False
+                        file.write(f"ESSID: {essid}\n")
+                        file.write(f"Channel: {network_info.get('Channel', 'Unknown')}\n")
+                        file.write(f"Signal Strength: {network_info.get('Signal Strength', 'Unknown')}\n")
+                        file.write(f"Security: {network_info.get('Security', 'Unknown')}\n")
                     network_info = {}  # Reset for the next network
 
-            if 'ESSID' in line:
+            if 'ESSID' in line and line.split(':')[1].strip():
                 essid = line.split(':')[1].strip().strip('"')
                 network_info['ESSID'] = essid
             elif 'Address' in line:
-                # Extract MAC address, not used directly in the output here
+                # Extract MAC address
                 network_info['Address'] = line.split(' ')[-1].strip()
             elif 'Frequency' in line:
                 # Extracting channel from frequency
                 match = re.search(r'(\d+\.\d+) GHz \(Channel (\d+)\)', line)
                 if match:
                     network_info['Channel'] = match.group(2)
+            elif 'Quality' in line or 'Signal level' in line:
+                # Extract signal strength
+                signal_strength = line.split('=')[1].split(' ')[0]
+                network_info['Signal Strength'] = signal_strength
+            elif 'Encryption key' in line:
+                # Extract encryption key information
+                if 'on' in line:
+                    network_info['Security'] = 'Encrypted'
+                else:
+                    network_info['Security'] = 'Open'
+            elif 'IE: IEEE' in line and 'WPA' in line or 'WPA2' in line:
+                # Extract detailed security type
+                security_type = line.split(':')[1].strip()
+                network_info['Security'] = security_type
 
         # Write the last network entry if it exists and wasn't written yet
         if network_info:
-            if first_network:  # If still the first network, add the scan time
-                file.write(f"Scan Time: {current_time}\n")
-            file.write(f"ESSID: {network_info.get('ESSID', 'Unknown')}\n")
-            file.write(f"Channel: {network_info.get('Channel', 'Unknown')}\n")
-            file.write('=' * 32 + '\n')
+            essid = network_info.get('ESSID', 'Unknown')
+            if essid != 'Unknown' and essid not in seen_networks:
+                if first_network:
+                    file.write(f"Scan Time: {current_time}\n")
+                file.write(f"ESSID: {essid}\n")
+                file.write(f"Channel: {network_info.get('Channel', 'Unknown')}\n")
+                file.write(f"Signal Strength: {network_info.get('Signal Strength', 'Unknown')}\n")
+                file.write(f"Security: {network_info.get('Security', 'Unknown')}\n")
+                file.write('=' * 32 + '\n')
 
 def main():
     interface = get_interface()
@@ -67,7 +90,7 @@ def main():
                 scan_data = scan_wifi(interface)
                 if scan_data:  # Ensure data is only written if scan was successful
                     parse_and_save(scan_data, file)
-                time.sleep(0)  # Pause for 0 second before next scan (troll face moment)
+                time.sleep(60)  # Adjust scan interval to a reasonable duration
         except KeyboardInterrupt:
             print("Stopped by user.")
 
