@@ -32,6 +32,7 @@ def parse_and_save(scan_data, file):
                         if first_network:
                             file.write(f"Scan Time: {current_time}\n")
                             first_network = False
+                        print(f"Wi-Fi network ESSID identified: {essid}\n")
                         file.write(f"ESSID: {essid}\n")
                         file.write(f"MAC Address: {network_info.get('Address', 'Unknown')}\n")
                         file.write(f"Channel: {network_info.get('Channel', 'Unknown')}\n")
