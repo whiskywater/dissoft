@@ -11,7 +11,7 @@ def start_monitor_mode(interface):
     # Start monitor mode
     try:
         subprocess.check_call(['sudo', 'airmon-ng', 'start', interface])
-        return interface + "mon"  # Assuming the interface name changes to <interface>mon
+        return interface # + "mon"  # Assuming the interface name changes to <interface>mon (haha no) :)
     except subprocess.CalledProcessError as e:
         print(f"Failed to set monitor mode: {e}")
         exit(1)
@@ -28,9 +28,10 @@ def scan_wifi(interface):
     command = ['sudo', 'airodump-ng', '--write-interval', '1', '--output-format', 'csv', '--write', '/tmp/scan_result', interface]
     try:
         # Execute the command
-        subprocess.Popen(command)
+        process = subprocess.Popen(command)
         time.sleep(30)  # Run the scan for 30 seconds
-        subprocess.Popen(['sudo', 'killall', '-s', 'SIGINT', 'airodump-ng'])  # Gracefully stop airodump-ng
+        process.terminate()  # Gracefully stop airodump-ng
+        process.wait()
     except subprocess.CalledProcessError as e:
         print(f"Failed to scan networks: {e}")
     except KeyboardInterrupt:
@@ -48,7 +49,9 @@ def parse_and_save(file):
                     details = line.split(',')
                     essid = details[-1].strip()
                     if essid and essid != 'ESSID':
-                        file.write(f"ESSID: {essid}\n")
+                        # Write ESSID to the file with a timestamp
+                        current_time = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
+                        file.write(f"Scan Time: {current_time}, ESSID: {essid}\n")
         file.write('=' * 32 + '\n')
     except FileNotFoundError:
         print("No scan data found.")
@@ -57,12 +60,15 @@ def main():
     interface = get_interface()
     mon_interface = start_monitor_mode(interface)
     # Open the output file in append mode
-    with open('output.txt', 'a') as file:
-        try:
-            scan_wifi(mon_interface)
-            parse_and_save(file)
-        finally:
-            stop_monitor_mode(mon_interface)
+    try:
+        with open('output.txt', 'a') as file:
+            while True:
+                scan_wifi(mon_interface)
+                parse_and_save(file)
+    except KeyboardInterrupt:
+        print("Stopped by user.")
+    finally:
+        stop_monitor_mode(mon_interface)
 
 if __name__ == "__main__":
     main()
