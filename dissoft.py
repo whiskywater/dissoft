@@ -30,6 +30,7 @@ def parse_and_save(scan_data, file):
                     if essid != 'Unknown' and essid not in seen_networks:
                         seen_networks.add(essid)
                         if first_network:
+                            file.write('\n' + '=' * 32 + '\n')
                             file.write(f"Scan Time: {current_time}\n")
                             first_network = False
                         print(f"Wi-Fi network ESSID identified: {essid}\n")
@@ -65,13 +66,12 @@ def parse_and_save(scan_data, file):
         if network_info:
             essid = network_info.get('ESSID', 'Unknown')
             if essid != 'Unknown' and essid not in seen_networks:
-                file.write(f"Scan Time: {current_time}\n")
+                # file.write(f"Scan Time: {current_time}\n")
                 file.write(f"MAC Address: {network_info.get('Address', 'Unknown')}\n")
                 file.write(f"ESSID: {essid}\n")
                 file.write(f"Channel: {network_info.get('Channel', 'Unknown')}\n")
                 file.write(f"Signal Strength: {network_info.get('Signal Strength', 'Unknown')}\n")
                 file.write(f"Security: {network_info.get('Security', 'Unknown')}\n")
-                file.write('\n' + '=' * 32 + '\n')
 
 def main():
     interface = get_interface()
