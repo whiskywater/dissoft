@@ -1,5 +1,6 @@
 import subprocess
 import time
+import os
 
 def get_interface():
     # Prompt user for the network interface
