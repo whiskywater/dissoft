@@ -1,54 +1,31 @@
 import subprocess
-import re
 
-def get_wireless_interface():
-    # Command to list network interfaces
+def scan_wifi():
+    # Command to scan wifi networks; 'wlan0' is the common name of the wireless interface on Linux
+    command = ['iwlist', 'wlan0', 'scan']
     try:
-        result = subprocess.run(["ip", "link"], capture_output=True, text=True, check=True)
-        # Regular expression to find wireless network interfaces, commonly start with 'wl'
-        interface_pattern = re.compile(r'\d+: (wl\w+):')
-        
-        # Searching for wireless interface names
-        interfaces = interface_pattern.findall(result.stdout)
-        if interfaces:
-            return interfaces[0]  # Return the first wireless interface found
-        else:
-            print("No wireless interface found.")
-            return None
+        # Execute the command
+        scan_output = subprocess.check_output(command, universal_newlines=True)
+        return scan_output
     except subprocess.CalledProcessError as e:
-        print("Failed to list network interfaces:", e)
+        print(f"Failed to scan networks: {e}")
         return None
 
-def scan_wifi(interface):
-    if interface is None:
-        return []
-    # Command to scan Wi-Fi
-    command = ["sudo", "iwlist", interface, "scan"]
-    
-    # Running the command
-    try:
-        result = subprocess.run(command, capture_output=True, text=True, check=True)
-        networks = []
-        
-        # Regular expressions to find SSIDs and signal strength
-        ssid_pattern = re.compile(r'ESSID:"(.*?)"')
-        strength_pattern = re.compile(r'Signal level=(\d+)')
+def parse_and_save(scan_data):
+    if scan_data:
+        # Open the output file
+        with open('output.txt', 'w') as file:
+            for line in scan_data.splitlines():
+                # Look for lines containing 'ESSID' which is the name of the WiFi network
+                if 'ESSID' in line:
+                    file.write(line.strip() + '\n')
 
-        for line in result.stdout.split('\n'):
-            ssid_search = ssid_pattern.search(line)
-            strength_search = strength_pattern.search(line)
-            if ssid_search and strength_search:
-                networks.append((ssid_search.group(1), strength_search.group(1)))
-        
-        return networks
-    except subprocess.CalledProcessError as e:
-        print("Failed to scan networks:", e)
-        return []
+def main():
+    scan_data = scan_wifi()
+    if scan_data:
+        parse_and_save(scan_data)
+    else:
+        print("No scan data available.")
 
-# Finding the wireless interface
-wireless_interface = get_wireless_interface()
-
-# Scanning WiFi networks
-networks = scan_wifi(wireless_interface)
-for ssid, strength in networks:
-    print(f"SSID: {ssid}, Signal Strength: {strength}")
+if __name__ == "__main__":
+    main()
