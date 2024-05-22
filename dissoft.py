@@ -79,7 +79,7 @@ def main():
             scan_data = scan_wifi(interface)
             if scan_data:
                 parse_and_save(scan_data, file)
-            time.sleep(60)  # Adjust scan interval to a reasonable duration
+            time.sleep(1)  # Adjust scan interval to a reasonable duration
 
 if __name__ == "__main__":
     main()
