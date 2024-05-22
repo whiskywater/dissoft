@@ -36,7 +36,6 @@ def parse_and_save(scan_data, file):
                         first_network = False
                     file.write(f"ESSID: {network_info.get('ESSID', 'Unknown')}\n")
                     file.write(f"Channel: {network_info.get('Channel', 'Unknown')}\n")
-                    file.write('=' * 32 + '\n')
                     network_info = {}  # Reset for the next network
 
             if 'ESSID' in line:
