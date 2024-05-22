@@ -26,14 +26,13 @@ def parse_and_save(scan_data, file):
         current_time = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
         file.write(f"Scan Time: {current_time}\n")
         
+        networks = []
         network_info = {}
+
         for line in scan_data.splitlines():
             if 'Cell' in line:  # New network block starts
                 if network_info:  # Save previous block if it exists
-                    file.write(f"ESSID: {network_info.get('ESSID', 'Unknown')}\n")
-                    file.write(f"MAC Address: {network_info.get('Address', 'Unknown')}\n")
-                    file.write(f"Channel: {network_info.get('Channel', 'Unknown')}\n")
-                    file.write('=' * 32 + '\n')
+                    networks.append(network_info)
                     network_info = {}  # Reset for next network block
 
             if 'ESSID' in line:
@@ -48,12 +47,19 @@ def parse_and_save(scan_data, file):
                 if match:
                     network_info['Channel'] = match.group(2)
 
-        # Write the last network entry if exists
+        # Add the last network entry if it exists
         if network_info:
-            file.write(f"ESSID: {network_info.get('ESSID', 'Unknown')}\n")
-            file.write(f"MAC Address: {network_info.get('Address', 'Unknown')}\n")
-            file.write(f"Channel: {network_info.get('Channel', 'Unknown')}\n")
-            file.write('=' * 32 + '\n')
+            networks.append(network_info)
+
+        # Writing all networks together
+        for net in networks:
+            file.write(f"ESSID: {net.get('ESSID', 'Unknown')}\n")
+            file.write(f"MAC Address: {net.get('Address', 'Unknown')}\n")
+            file.write(f"Channel: {net.get('Channel', 'Unknown')}\n")
+            file.write('-' * 32 + '\n')
+        
+        # Add separator for this entire scan cluster
+        file.write('=' * 32 + '\n')
 
 def main():
     interface = get_interface()
