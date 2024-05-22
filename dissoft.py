@@ -16,7 +16,8 @@ def scan_wifi(interface):
         return scan_output
     except subprocess.CalledProcessError as e:
         print(f"Failed to scan networks: {e}")
-        return None
+        # Instead of returning None, return an empty string to avoid affecting the output file
+        return ""
 
 def parse_and_save(scan_data, file):
     if scan_data:
@@ -39,7 +40,8 @@ def main():
         try:
             while True:
                 scan_data = scan_wifi(interface)
-                parse_and_save(scan_data, file)
+                if scan_data:  # Ensure data is only written if scan was successful
+                    parse_and_save(scan_data, file)
                 time.sleep(1)  # Pause for 1 second before next scan
         except KeyboardInterrupt:
             print("Stopped by user.")
