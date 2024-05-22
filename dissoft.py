@@ -1,16 +1,36 @@
 import subprocess
 import re
 
-def scan_wifi():
-    # Command to scan Wi-Fi; 'wlan0' is a common interface name for Wi-Fi devices
-    command = ["sudo", "iwlist", "wlan0", "scan"]
+def get_wireless_interface():
+    # Command to list network interfaces
+    try:
+        result = subprocess.run(["ip", "link"], capture_output=True, text=True, check=True)
+        # Regular expression to find wireless network interfaces, commonly start with 'wl'
+        interface_pattern = re.compile(r'\d+: (wl\w+):')
+        
+        # Searching for wireless interface names
+        interfaces = interface_pattern.findall(result.stdout)
+        if interfaces:
+            return interfaces[0]  # Return the first wireless interface found
+        else:
+            print("No wireless interface found.")
+            return None
+    except subprocess.CalledProcessError as e:
+        print("Failed to list network interfaces:", e)
+        return None
+
+def scan_wifi(interface):
+    if interface is None:
+        return []
+    # Command to scan Wi-Fi
+    command = ["sudo", "iwlist", interface, "scan"]
     
     # Running the command
     try:
         result = subprocess.run(command, capture_output=True, text=True, check=True)
         networks = []
         
-        # Regular expression to find SSIDs
+        # Regular expressions to find SSIDs and signal strength
         ssid_pattern = re.compile(r'ESSID:"(.*?)"')
         strength_pattern = re.compile(r'Signal level=(\d+)')
 
@@ -25,7 +45,10 @@ def scan_wifi():
         print("Failed to scan networks:", e)
         return []
 
-# Example usage
-networks = scan_wifi()
+# Finding the wireless interface
+wireless_interface = get_wireless_interface()
+
+# Scanning WiFi networks
+networks = scan_wifi(wireless_interface)
 for ssid, strength in networks:
     print(f"SSID: {ssid}, Signal Strength: {strength}")
