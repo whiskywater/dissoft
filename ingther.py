@@ -7,20 +7,34 @@ def read_network_data(file_path):
         for line in file:
             line = line.strip()
             if 'ESSID:' in line:
-                if current_network:  # Save the last network if there is one
-                    if essid_key and essid_key not in network_dict:  # Avoid duplicates
-                        network_dict[essid_key] = current_network
-                # Reset for new network
-                essid_key = line.split('ESSID: ')[1].strip().strip('"')
-                current_network = {}
-            elif 'MAC Address:' in line and essid_key:
-                current_network['MAC Address'] = line.split('MAC Address: ')[1].strip()
-            elif 'Channel:' in line and essid_key:
-                current_network['Channel'] = line.split('Channel: ')[1].strip()
-            elif 'Security:' in line and essid_key:
-                current_network['Security'] = line.split('Security: ')[1].strip()
+                # Save the last network if there is one and it's not a duplicate
+                if current_network and essid_key and essid_key not in network_dict:
+                    network_dict[essid_key] = current_network
 
-        # Make sure to save the last network entry
+                # Extract ESSID safely
+                essid_parts = line.split('ESSID: ')
+                if len(essid_parts) > 1:
+                    essid_key = essid_parts[1].strip().strip('"')
+                    current_network = {}
+                else:
+                    essid_key = None  # Invalid line format, ignore this network
+
+            elif 'MAC Address:' in line and essid_key:
+                mac_parts = line.split('MAC Address: ')
+                if len(mac_parts) > 1:
+                    current_network['MAC Address'] = mac_parts[1].strip()
+
+            elif 'Channel:' in line and essid_key:
+                channel_parts = line.split('Channel: ')
+                if len(channel_parts) > 1:
+                    current_network['Channel'] = channel_parts[1].strip()
+
+            elif 'Security:' in line and essid_key:
+                security_parts = line.split('Security: ')
+                if len(security_parts) > 1:
+                    current_network['Security'] = security_parts[1].strip()
+
+        # Save the last network entry if valid
         if essid_key and essid_key not in network_dict and current_network:
             network_dict[essid_key] = current_network
 
