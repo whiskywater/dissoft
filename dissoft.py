@@ -37,7 +37,7 @@ def parse_and_save(scan_data, file):
                         file.write(f"MAC Address: {network_info.get('Address', 'Unknown')}\n")
                         file.write(f"Channel: {network_info.get('Channel', 'Unknown')}\n")
                         file.write(f"Signal Strength: {network_info.get('Signal Strength', 'Unknown')}\n")
-                        file.write(f"Security: {network_info.get('Security', 'Unknown')}\n")
+                        file.write(f"Security: {network_info.get('Security', 'Unknown')}\n\n")
                     network_info = {}  # Reset for the next network
 
             if 'Address' in line:
@@ -71,7 +71,7 @@ def parse_and_save(scan_data, file):
                 file.write(f"Channel: {network_info.get('Channel', 'Unknown')}\n")
                 file.write(f"Signal Strength: {network_info.get('Signal Strength', 'Unknown')}\n")
                 file.write(f"Security: {network_info.get('Security', 'Unknown')}\n")
-                file.write('=' * 32 + '\n')
+                file.write('\n' + '=' * 32 + '\n')
 
 def main():
     interface = get_interface()
