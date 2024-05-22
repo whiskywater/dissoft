@@ -1,25 +1,29 @@
 def read_network_data(file_path):
     network_dict = {}
+    current_network = {}
+    essid_key = None
+
     with open(file_path, 'r') as file:
-        data = file.read().split('Scan Time: ')[1:]  # Split into blocks starting from second block to skip header
-        for block in data:
-            lines = block.split('\n')
-            essid = ''
-            for line in lines:
-                if 'ESSID: ' in line:
-                    essid = line.split('ESSID: ')[1].strip()
-                elif 'MAC Address: ' in line and essid:
-                    mac_address = line.split('MAC Address: ')[1].strip()
-                elif 'Channel: ' in line and essid:
-                    channel = line.split('Channel: ')[1].strip()
-                elif 'Security: ' in line and essid:
-                    security = line.split('Security: ')[1].strip()
-            if essid and essid not in network_dict:  # Avoid duplicates
-                network_dict[essid] = {
-                    'MAC Address': mac_address,
-                    'Channel': channel,
-                    'Security': security
-                }
+        for line in file:
+            line = line.strip()
+            if 'ESSID:' in line:
+                if current_network:  # Save the last network if there is one
+                    if essid_key and essid_key not in network_dict:  # Avoid duplicates
+                        network_dict[essid_key] = current_network
+                # Reset for new network
+                essid_key = line.split('ESSID: ')[1].strip().strip('"')
+                current_network = {}
+            elif 'MAC Address:' in line and essid_key:
+                current_network['MAC Address'] = line.split('MAC Address: ')[1].strip()
+            elif 'Channel:' in line and essid_key:
+                current_network['Channel'] = line.split('Channel: ')[1].strip()
+            elif 'Security:' in line and essid_key:
+                current_network['Security'] = line.split('Security: ')[1].strip()
+
+        # Make sure to save the last network entry
+        if essid_key and essid_key not in network_dict and current_network:
+            network_dict[essid_key] = current_network
+
     return network_dict
 
 def get_network_info(ssid, network_dict):
