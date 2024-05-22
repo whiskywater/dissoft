@@ -1,8 +1,14 @@
 import subprocess
+import time
 
-def scan_wifi():
-    # Command to scan wifi networks; 'wlan0' is the common name of the wireless interface on Linux
-    command = ['iwlist', 'wlan0', 'scan']
+def get_interface():
+    # Prompt user for the network interface
+    interface = input("Enter the network interface (e.g., wlan0, wlo1): ")
+    return interface
+
+def scan_wifi(interface):
+    # Command to scan wifi networks
+    command = ['iwlist', interface, 'scan']
     try:
         # Execute the command
         scan_output = subprocess.check_output(command, universal_newlines=True)
@@ -11,21 +17,31 @@ def scan_wifi():
         print(f"Failed to scan networks: {e}")
         return None
 
-def parse_and_save(scan_data):
+def parse_and_save(scan_data, file):
     if scan_data:
-        # Open the output file
-        with open('output.txt', 'w') as file:
-            for line in scan_data.splitlines():
-                # Look for lines containing 'ESSID' which is the name of the WiFi network
-                if 'ESSID' in line:
-                    file.write(line.strip() + '\n')
+        # Write current timestamp
+        current_time = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
+        file.write(f"Scan Time: {current_time}\n")
+        
+        # Write each network's ESSID
+        for line in scan_data.splitlines():
+            if 'ESSID' in line:
+                file.write(line.strip() + '\n')
+        
+        # Separator for clusters of entries
+        file.write('=' * 32 + '\n')
 
 def main():
-    scan_data = scan_wifi()
-    if scan_data:
-        parse_and_save(scan_data)
-    else:
-        print("No scan data available.")
+    interface = get_interface()
+    # Open the output file in append mode
+    with open('output.txt', 'a') as file:
+        try:
+            while True:
+                scan_data = scan_wifi(interface)
+                parse_and_save(scan_data, file)
+                time.sleep(1)  # Pause for 1 second before next scan
+        except KeyboardInterrupt:
+            print("Stopped by user.")
 
 if __name__ == "__main__":
     main()
